@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { LevelGenerator } from './LevelGenerator.js';
+import { createGridTexture, createCheckTexture } from './TextureGen.js';
 
 export class Level {
     constructor(scene) {
@@ -20,7 +21,20 @@ export class Level {
         });
     }
 
+
+
     init() {
+        // Textures
+        const floorTex = createGridTexture(512, 64, '#444444', '#222222');
+        floorTex.wrapS = THREE.RepeatWrapping;
+        floorTex.wrapT = THREE.RepeatWrapping;
+        floorTex.repeat.set(20, 20);
+
+        const wallTex = createGridTexture(512, 64, '#884444', '#662222');
+        wallTex.wrapS = THREE.RepeatWrapping;
+        wallTex.wrapT = THREE.RepeatWrapping;
+        // Wall texture repeat needs handling per mesh or global? Global is easier if UVs match.
+
         // Generate Level
         // Size 100x100 (Expert Design: Larger Map)
         const gen = new LevelGenerator(100, 100);
@@ -30,8 +44,8 @@ export class Level {
         // Floor
         const floorGeo = new THREE.PlaneGeometry(100, 100);
         const floorMat = new THREE.MeshStandardMaterial({
-            color: 0x333333,
-            side: THREE.DoubleSide
+            map: floorTex,
+            roughness: 0.8
         });
         const floor = new THREE.Mesh(floorGeo, floorMat);
         floor.rotation.x = -Math.PI / 2;
@@ -54,7 +68,10 @@ export class Level {
         // Walls
         // Use a shared geometry and material
         const wallGeo = new THREE.BoxGeometry(1, 4, 1);
-        const wallMat = new THREE.MeshStandardMaterial({ color: 0x884444 });
+        const wallMat = new THREE.MeshStandardMaterial({
+            map: wallTex,
+            roughness: 0.8
+        });
 
         data.walls.forEach(w => {
             const mesh = new THREE.Mesh(wallGeo, wallMat);
@@ -128,8 +145,24 @@ export class Level {
         if (this.rooms.length === 0) return new THREE.Vector3(0, 2, 0);
 
         const r = this.rooms[Math.floor(Math.random() * this.rooms.length)];
-        const x = r.x + r.width / 2;
-        const z = r.z + r.depth / 2;
+
+        // Random position within the room, with some padding from walls
+        const padding = 2;
+        // Ensure room is large enough for padding, otherwise just center
+        let x, z;
+
+        if (r.width > padding * 2) {
+            x = r.x + padding + Math.random() * (r.width - padding * 2);
+        } else {
+            x = r.x + r.width / 2;
+        }
+
+        if (r.depth > padding * 2) {
+            z = r.z + padding + Math.random() * (r.depth - padding * 2);
+        } else {
+            z = r.z + r.depth / 2;
+        }
+
         return new THREE.Vector3(x, 2, z);
     }
 }

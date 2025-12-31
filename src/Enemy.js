@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 
 export class Enemy {
-    constructor(scene, position) {
+    constructor(scene, position, particleManager) {
         this.scene = scene;
+        this.particleManager = particleManager;
         this.alive = true;
 
         // Simple red 'demon' box
@@ -28,10 +29,16 @@ export class Enemy {
         }, 100);
 
         this.alive = false;
+
+        // Particles
+        if (this.particleManager) {
+            this.particleManager.createExplosion(this.mesh.position, 0xff0000, 20);
+        }
+
         // Die effect
         setTimeout(() => {
             this.destroy();
-        }, 200);
+        }, 50);
     }
 
     destroy() {

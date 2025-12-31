@@ -4,6 +4,9 @@ import { Level } from './Level.js';
 import { Weapon } from './Weapon.js';
 import { Enemy } from './Enemy.js';
 import { Pickup } from './Pickup.js';
+import { ParticleManager } from './ParticleManager.js';
+import { DecalManager } from './DecalManager.js';
+import { ProjectileManager } from './ProjectileManager.js';
 
 export class Game {
     constructor() {
@@ -28,6 +31,9 @@ export class Game {
         this.container.appendChild(this.renderer.domElement);
 
         this.clock = new THREE.Clock();
+        this.particleManager = new ParticleManager(this.scene);
+        this.decalManager = new DecalManager(this.scene);
+        this.projectileManager = new ProjectileManager(this.scene, this.particleManager);
 
         this.level = new Level(this.scene);
         this.player = new Player(this.camera, this.container);
@@ -36,15 +42,18 @@ export class Game {
         const startPos = this.level.getSpawnPoint();
         this.player.camera.position.copy(startPos);
 
-        this.weapon = new Weapon(this.camera, this.scene);
+        this.player.camera.position.copy(startPos);
+
+        // Pass particle manager to weapon
+        this.weapon = new Weapon(this.camera, this.scene, this.particleManager, this.decalManager, this.projectileManager);
         this.camera.add(this.weapon.mesh); // Ensure gun is in scene graph via camera
         this.scene.add(this.camera); // Camera must be in scene for children to render if not implicitly done (often is, but good practice)
 
         this.enemies = [];
         // Spawn some enemies
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < 30; i++) {
             const pos = this.level.getSpawnPoint();
-            this.enemies.push(new Enemy(this.scene, pos));
+            this.enemies.push(new Enemy(this.scene, pos, this.particleManager));
         }
 
         this.pickups = [];
@@ -58,11 +67,10 @@ export class Game {
 
         // Pass shoot callback to player or handle input globally.
         // Let's hook up click to shoot in update or Player.
-        this.container.addEventListener('mousedown', () => {
-            if (this.player.controls.isLocked) {
-                this.weapon.shoot(this.enemies.filter(e => e.alive));
-            }
-        });
+        // Input State
+        this.isMouseDown = false;
+        this.container.addEventListener('mousedown', () => { this.isMouseDown = true; });
+        this.container.addEventListener('mouseup', () => { this.isMouseDown = false; });
 
 
         window.addEventListener('resize', this.onWindowResize.bind(this));
@@ -70,6 +78,7 @@ export class Game {
         // UI Elements
         this.uiHealth = document.getElementById('health-val');
         this.uiAmmo = document.getElementById('ammo-val');
+        this.uiWeapon = document.getElementById('weapon-val');
         this.uiGameOver = document.getElementById('game-over');
         this.btnRestart = document.getElementById('restart-btn');
 
@@ -92,8 +101,14 @@ export class Game {
         }
 
         this.level.update(dt);
+        if (this.isMouseDown && this.player.controls.isLocked) {
+            this.weapon.shoot(this.enemies.filter(e => e.alive));
+        }
+
         this.player.update(dt, this.level.getCollidables(), this.enemies);
         this.weapon.update(dt);
+        this.particleManager.update(dt);
+        this.projectileManager.update(dt, this.level.getCollidables(), this.enemies, this.player);
 
         this.enemies.forEach(e => e.update(dt, this.player.camera.position, this.player, this.level.getCollidables()));
         // Cleanup dead enemies
@@ -127,6 +142,7 @@ export class Game {
         // Update UI
         this.uiHealth.innerText = Math.ceil(this.player.health);
         this.uiAmmo.innerText = this.weapon.ammo;
+        this.uiWeapon.innerText = this.weapon.currentWeapon.name;
 
         this.renderer.render(this.scene, this.camera);
     }

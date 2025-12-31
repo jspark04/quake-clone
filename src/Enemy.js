@@ -40,7 +40,7 @@ export class Enemy {
         this.mesh.material.dispose();
     }
 
-    update(dt, playerPos, playerEntity) {
+    update(dt, playerPos, playerEntity, collidables) {
         if (!this.alive) return;
 
         // Simple look at player
@@ -50,6 +50,17 @@ export class Enemy {
         const dist = this.mesh.position.distanceTo(playerPos);
         if (dist > 2.0) {
             const dir = new THREE.Vector3().subVectors(playerPos, this.mesh.position).normalize();
+
+            // Collision Check
+            const ray = new THREE.Raycaster(this.mesh.position, dir, 0, 1.5); // Check short distance ahead
+            if (collidables) {
+                const hits = ray.intersectObjects(collidables);
+                if (hits.length > 0) {
+                    // Blocked
+                    return;
+                }
+            }
+
             this.mesh.position.addScaledVector(dir, dt * 3.0);
         }
 

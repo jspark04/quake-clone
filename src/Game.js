@@ -9,6 +9,11 @@ export class Game {
     constructor() {
         this.container = document.querySelector('#app') || document.body;
 
+        // Cleanup existing canvas or content to prevent duplicates/HMR artifacts
+        while (this.container.firstChild) {
+            this.container.removeChild(this.container.firstChild);
+        }
+
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color(0x111111);
         this.scene.fog = new THREE.Fog(0x111111, 0, 100);
@@ -18,12 +23,18 @@ export class Game {
         this.renderer = new THREE.WebGLRenderer({ antialias: false }); // False for retro feel
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         this.container.appendChild(this.renderer.domElement);
 
         this.clock = new THREE.Clock();
 
-        this.player = new Player(this.camera, this.container);
         this.level = new Level(this.scene);
+        this.player = new Player(this.camera, this.container);
+
+        // Set Player Spawn
+        const startPos = this.level.getSpawnPoint();
+        this.player.camera.position.copy(startPos);
 
         this.weapon = new Weapon(this.camera, this.scene);
         this.camera.add(this.weapon.mesh); // Ensure gun is in scene graph via camera
@@ -32,22 +43,15 @@ export class Game {
         this.enemies = [];
         // Spawn some enemies
         for (let i = 0; i < 5; i++) {
-            const pos = new THREE.Vector3(
-                (Math.random() - 0.5) * 50,
-                2,
-                (Math.random() - 0.5) * 50
-            );
+            const pos = this.level.getSpawnPoint();
             this.enemies.push(new Enemy(this.scene, pos));
         }
 
         this.pickups = [];
         // Spawn Pickups
         for (let i = 0; i < 5; i++) {
-            const pos = new THREE.Vector3(
-                (Math.random() - 0.5) * 50,
-                1,
-                (Math.random() - 0.5) * 50
-            );
+            const pos = this.level.getSpawnPoint();
+            pos.y = 1; // Pickups are lower
             const type = Math.random() > 0.5 ? 'HEALTH' : 'AMMO';
             this.pickups.push(new Pickup(this.scene, type, pos));
         }
@@ -87,10 +91,11 @@ export class Game {
             return;
         }
 
+        this.level.update(dt);
         this.player.update(dt, this.level.getCollidables(), this.enemies);
         this.weapon.update(dt);
 
-        this.enemies.forEach(e => e.update(dt, this.player.camera.position, this.player));
+        this.enemies.forEach(e => e.update(dt, this.player.camera.position, this.player, this.level.getCollidables()));
         // Cleanup dead enemies
         this.enemies = this.enemies.filter(e => e.alive);
 
@@ -130,5 +135,22 @@ export class Game {
         this.camera.aspect = window.innerWidth / window.innerHeight;
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    dispose() {
+        this.renderer.setAnimationLoop(null);
+        window.removeEventListener('resize', this.onWindowResize);
+
+        if (this.player) {
+            this.player.dispose();
+        }
+
+        // Cleanup DOM
+        if (this.container.contains(this.renderer.domElement)) {
+            this.container.removeChild(this.renderer.domElement);
+        }
+
+        // Optional: Dispose Three.js resources (geometries, materials) to prevent leaks
+        // For a simple reload, letting GC handle unreachable objects is usually fine if root (renderer/scene) is cut.
     }
 }

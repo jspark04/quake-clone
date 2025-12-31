@@ -9,8 +9,10 @@ A simple web-based First Person Shooter (FPS) game built with **Three.js** and *
 *   **FPS Controller**: Classic WASD movement with acceleration/friction physics.
 *   **Mouse Look**: Pointer Lock API for immersive cursor-free aiming.
 *   **Combat**: Hitscan weapon system with recoil, muzzle flash, and enemy damage logic.
+*   **Pickups**: Collectible resources (Health and Ammo) scattered throughout the level.
 *   **Enemies**: Basic AI targets (red blocks) that react to damage and can be destroyed.
-*   **Level**: Procedurally generated environment with random obstacles and lighting.
+*   **Level**: Procedurally generated dungeon using BSP (Binary Space Partitioning) with rooms, corridors, and dynamic lighting.
+*   **Game Loop**: Includes "Game Over" state with restart functionality.
 *   **Retro Aesthetics**: Disable antialiasing and simple geometry for that 90s feel.
 
 ## 🚀 Getting Started
@@ -65,20 +67,27 @@ The project uses Vanilla JavaScript with ES Modules.
 *   **`src/Game.js`**: The central engine.
     *   Manages `THREE.Scene`, `THREE.Camera`, and `THREE.Renderer`.
     *   Runs the requestAnimationFrame loop (`update()` method).
-    *   Orchestrates the Player, Level, Weapon, and Enemy systems.
+    *   Orchestrates the Player, Level, Weapon, Enemy, and Pickup systems.
+    *   Handles UI updates (Health, Ammo, Game Over).
 *   **`src/Player.js`**: Handles user input and physics.
     *   Uses `PointerLockControls` for camera rotation.
     *   Calculates velocity with simple friction and acceleration logic for smooth movement.
     *   Handles basic floor collision.
 *   **`src/Level.js`**: Generates the world.
-    *   Creates the floor and random `collidables` (boxes).
-    *   Sets up the scene lighting (Ambient + Directional).
+    *   Uses `LevelGenerator` to create a map of rooms and walls.
+    *   Instantiates the floor, ceiling, and wall meshes.
+    *   Sets up lighting (Ambient + Point lights in rooms).
+*   **`src/LevelGenerator.js`**: Procedural generation logic.
+    *   Implements Binary Space Partitioning (BSP) to generate rooms and corridors.
 *   **`src/Weapon.js`**: Implements shooting mechanics.
     *   `shoot()`: Uses `THREE.Raycaster` from the center of the screen.
     *   Manages the visual gun model attached to the camera, including recoil and muzzle flash effects.
 *   **`src/Enemy.js`**: Simple game entities.
     *   `takeDamage()`: Handles health and "death" animations (color flash, removal from scene).
     *   `update()`: Logic for looking at the player (billboarding effect).
+*   **`src/Pickup.js`**: Collectible items.
+    *   Types: 'HEALTH' (Green Box) and 'AMMO' (Yellow Sphere).
+    *   Handles rotation animation and visuals.
 
 ## 🛠️ Customization
 

@@ -18,6 +18,9 @@ export class Weapon {
         this.canShoot = true;
         this.fireRate = 0.5; // seconds
 
+        this.maxAmmo = 30;
+        this.ammo = this.maxAmmo;
+
         // Muzzle flash light
         this.flash = new THREE.PointLight(0xffff00, 0, 10);
         this.flash.position.set(0, 0, -1);
@@ -25,9 +28,10 @@ export class Weapon {
     }
 
     shoot(enemies) {
-        if (!this.canShoot) return;
+        if (!this.canShoot || this.ammo <= 0) return;
 
         this.canShoot = false;
+        this.ammo--;
 
         // Visual effect
         this.flash.intensity = 2;
@@ -62,6 +66,13 @@ export class Weapon {
         if (this.mesh.position.z > -0.5) {
             this.mesh.position.z -= dt * 1.0;
             if (this.mesh.position.z < -0.5) this.mesh.position.z = -0.5;
+        }
+    }
+
+    addAmmo(amount) {
+        this.ammo += amount;
+        if (this.ammo > this.maxAmmo) {
+            this.ammo = this.maxAmmo;
         }
     }
 }

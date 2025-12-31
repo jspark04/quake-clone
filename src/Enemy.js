@@ -40,15 +40,26 @@ export class Enemy {
         this.mesh.material.dispose();
     }
 
-    update(dt, playerPos) {
+    update(dt, playerPos, playerEntity) {
         if (!this.alive) return;
 
         // Simple look at player
         this.mesh.lookAt(playerPos.x, this.mesh.position.y, playerPos.z);
 
-        // Maybe move towards player slowly?
-        // vector to player
-        // const dir = new THREE.Vector3().subVectors(playerPos, this.mesh.position).normalize();
-        // this.mesh.position.addScaledVector(dir, dt * 2.0);
+        // Move towards player
+        const dist = this.mesh.position.distanceTo(playerPos);
+        if (dist > 2.0) {
+            const dir = new THREE.Vector3().subVectors(playerPos, this.mesh.position).normalize();
+            this.mesh.position.addScaledVector(dir, dt * 3.0);
+        }
+
+        // Attack
+        if (dist < 2.5) {
+            if (!this.lastAttackTime || (performance.now() - this.lastAttackTime > 1000)) {
+                playerEntity.takeDamage(10);
+                this.lastAttackTime = performance.now();
+                // Visual feedback for attack?
+            }
+        }
     }
 }

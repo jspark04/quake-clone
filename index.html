@@ -1,13 +1,30 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>testsite</title>
-  </head>
-  <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.js"></script>
-  </body>
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>testsite</title>
+</head>
+
+<body>
+  <div id="ui-layer">
+    <div id="crosshair">+</div>
+    <div id="hud-stats">
+      <div id="health-container">HP: <span id="health-val">100</span></div>
+      <div id="ammo-container">AMMO: <span id="ammo-val">30</span></div>
+    </div>
+    <div id="game-over" style="display: none;">
+      <div class="game-over-content">
+        <h1>GAME OVER</h1>
+        <p>YOU DIED</p>
+        <button id="restart-btn">TRY AGAIN</button>
+      </div>
+    </div>
+  </div>
+  <div id="app"></div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+
 </html>

@@ -20,6 +20,11 @@ export class Player {
         // Player collider parameters
         this.radius = 0.5;
 
+        // Stats
+        this.maxHealth = 100;
+        this.health = this.maxHealth;
+        this.isDead = false;
+
         this.initInput();
 
         // Initial position
@@ -78,7 +83,7 @@ export class Player {
         document.addEventListener('keyup', onKeyUp);
     }
 
-    update(dt, collidables) {
+    update(dt, collidables, enemies) {
         if (!this.controls.isLocked) return;
 
         // Friction
@@ -101,16 +106,91 @@ export class Player {
         this.controls.moveRight(-this.velocity.x * dt);
         this.controls.moveForward(-this.velocity.z * dt);
 
-        // Simple collision check (very basic, preventing walking through the center height of boxes)
-        // For a robust implementation, we'd need raycasting or AABB checks against the future position.
-        // For this prototype, I'll rely on the visual "Quake" speed, and maybe simple bounding sphere check later.
-        // Let's implement a quick raycast check for walls in movement direction if requested, 
-        // but for now, let's get movement feeling good.
+        // Collision Check
+        this.checkCollisions(collidables);
+        if (enemies) {
+            // Extract meshes for collision check
+            const enemyMeshes = enemies.map(e => e.mesh);
+            this.checkCollisions(enemyMeshes);
+        }
 
-        // Prevent falling through floor
         if (this.camera.position.y < 2) {
             this.velocity.y = 0;
             this.camera.position.y = 2;
+        }
+    }
+
+    checkCollisions(objects) {
+        if (!objects || objects.length === 0) return;
+
+        const playerPos = this.camera.position;
+        const playerRadius = this.radius;
+
+        // Bounding Box for temp calculations
+        const box = new THREE.Box3();
+        const playerSphere = new THREE.Sphere(playerPos, playerRadius);
+
+        for (const obj of objects) {
+            if (!obj.geometry) continue;
+
+            // Ensure bounding box is calculated
+            if (!obj.geometry.boundingBox) obj.geometry.computeBoundingBox();
+
+            box.copy(obj.geometry.boundingBox).applyMatrix4(obj.matrixWorld);
+
+            if (box.intersectsSphere(playerSphere)) {
+                // Determine the closest point on the box to the sphere center
+                const closestPoint = new THREE.Vector3();
+                box.clampPoint(playerPos, closestPoint);
+
+                // Calculate the vector from the closest point to the sphere center
+                const pushVector = new THREE.Vector3().subVectors(playerPos, closestPoint);
+                const distance = pushVector.length();
+
+                // If the distance is less than radius, we are colliding
+                if (distance < playerRadius) {
+                    // Resolve collision: push player out
+                    const penetrationDepth = playerRadius - distance;
+
+                    // Normalize push vector (handle zero-length vector case)
+                    if (distance > 0) {
+                        pushVector.normalize();
+                    } else {
+                        // If perfectly inside, push up or random horizontal? 
+                        // Just push back along velocity inverse or arbitrary for now
+                        pushVector.set(1, 0, 0);
+                    }
+
+                    // Apply correction
+                    playerPos.addScaledVector(pushVector, penetrationDepth);
+
+                    // Kill velocity in that direction (optional, but feels better)
+                    // Project velocity onto pushVector and subtract parallel component if moving into it
+                    // const velocityProjected = this.velocity.clone().projectOnVector(pushVector);
+                    // if (velocityProjected.dot(pushVector) < 0) { // Moving towards collider
+                    //      this.velocity.sub(velocityProjected);
+                    // }
+                }
+            }
+        }
+
+    }
+    takeDamage(amount) {
+        if (this.isDead) return;
+
+        this.health -= amount;
+        if (this.health <= 0) {
+            this.health = 0;
+            this.isDead = true;
+            console.log("Player Died!"); // Placeholder for Game Over
+        }
+    }
+
+    heal(amount) {
+        if (this.isDead) return;
+        this.health += amount;
+        if (this.health > this.maxHealth) {
+            this.health = this.maxHealth;
         }
     }
 }
